@@ -11,6 +11,7 @@ import openai
 from youtube_transcript_api import YouTubeTranscriptApi
 from app.utils.text_analysis import limpiar_y_contar, TextAnalyzer
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
@@ -83,10 +84,14 @@ def puntuar_texto_en_espanol(texto):
 
 def generar_resumen(texto):
     try:
-        print("\nGenerando resumen usando OpenAI API...")
-        prompt = f"Resume el siguiente texto en español manteniendo las ideas clave: {texto}"
+        # Crear instancia del cliente OpenAI
+        client = OpenAI()
         
-        response = openai.ChatCompletion.create(
+        print("\nGenerando resumen usando OpenAI API...")
+        prompt = f"Resume el siguiente texto en español manteniendo las ideas clave:\n\n{texto}"
+        
+        # Nueva estructura de llamada a la API en openai>=1.0.0
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Eres un asistente que proporciona resúmenes de textos."},
@@ -96,11 +101,12 @@ def generar_resumen(texto):
             temperature=0.7
         )
         
-        resumen = response['choices'][0]['message']['content']
+        resumen = response.choices[0].message.content
         return resumen.strip()
     except Exception as e:
         print(f"Error al generar el resumen: {e}")
         return None
+
 
 def procesar_video(video_url):
     try:
