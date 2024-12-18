@@ -105,6 +105,6 @@ Contribuciones
 Las contribuciones son bienvenidas. Por favor, abre un issue o envía un pull request para nuevas ideas o mejoras.
 
 Autor
-Creado por Antoni Amaya Obrador. 
+Creado por Antoni Amaya  y Ainoa Castro.
 2024. 
 
