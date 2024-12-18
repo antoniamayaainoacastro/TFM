@@ -1,4 +1,3 @@
-# Importaciones
 import os
 import re
 import time
@@ -8,47 +7,12 @@ import speech_recognition as sr
 from vosk import Model, KaldiRecognizer
 import wave
 import json
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import openai
 from youtube_transcript_api import YouTubeTranscriptApi
-import torch
 from app.utils.text_analysis import limpiar_y_contar, TextAnalyzer
 
-# Set environment variables
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-# Configuración de los modelos
-SMALL_CHAT_MODEL_CON_CASTELLANO = "Qwen/Qwen2-1.5B-Instruct"  # Asegúrate de que el nombre es correcto
-DEVICE = "cpu"  # Forzar uso de CPU
-
-def init_models():
-    try:
-        print("Cargando modelo Qwen...")
-        qwen_model = AutoModelForCausalLM.from_pretrained(
-            SMALL_CHAT_MODEL_CON_CASTELLANO,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True,
-            device_map="auto"
-        ).to(DEVICE)
-        
-        print("Cargando tokenizer Qwen...")
-        qwen_tokenizer = AutoTokenizer.from_pretrained(SMALL_CHAT_MODEL_CON_CASTELLANO)
-        
-        if qwen_tokenizer.pad_token is None:
-            qwen_tokenizer.pad_token = qwen_tokenizer.eos_token
-            qwen_model.config.pad_token_id = qwen_model.config.eos_token_id
-
-        print("Modelo y tokenizer inicializados correctamente.")
-        return qwen_model, qwen_tokenizer
-    except Exception as e:
-        print(f"❌ Error al inicializar modelos/tokenizer: {e}")
-        return None, None
-
-# Inicialización global de modelos
-qwen_model, qwen_tokenizer = init_models()
-
-# Verificación del modelo y tokenizador
-if not qwen_model or not qwen_tokenizer:
-    raise ValueError("El modelo o el tokenizer no se inicializaron correctamente.")
+# Configuración de OpenAI
+openai.api_key = "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"
 
 def download_audio_yt_dlp(video_url):
     try:
@@ -112,26 +76,21 @@ def puntuar_texto_en_espanol(texto):
 
 def generar_resumen(texto):
     try:
+        print("\nGenerando resumen usando OpenAI API...")
         prompt = f"Resume el siguiente texto en español manteniendo las ideas clave: {texto}"
-        messages = [
-            {"role": "system", "content": "Eres un asistente que proporciona resúmenes de textos."},
-            {"role": "user", "content": prompt}
-        ]
-
-        text = qwen_tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-
-        model_inputs = qwen_tokenizer([text], return_tensors="pt").to(DEVICE)
-        generated_ids = qwen_model.generate(model_inputs.input_ids, max_new_tokens=512)
-        generated_ids = [
-            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-        ]
-        resumen = qwen_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        return resumen
         
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Eres un asistente que proporciona resúmenes de textos."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=512,
+            temperature=0.7
+        )
+        
+        resumen = response['choices'][0]['message']['content']
+        return resumen.strip()
     except Exception as e:
         print(f"Error al generar el resumen: {e}")
         return None
