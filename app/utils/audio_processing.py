@@ -10,9 +10,16 @@ import json
 import openai
 from youtube_transcript_api import YouTubeTranscriptApi
 from app.utils.text_analysis import limpiar_y_contar, TextAnalyzer
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde el archivo .env
+load_dotenv()
 
 # Configuración de OpenAI
-openai.api_key = "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"
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+if not openai.api_key:
+    raise ValueError("La clave de OpenAI no está configurada. Por favor, revisa el archivo .env.")
 
 def download_audio_yt_dlp(video_url):
     try:
