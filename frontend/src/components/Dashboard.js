@@ -3,7 +3,6 @@ import { Chart } from "chart.js/auto";
 import axios from "axios";
 
 const PERFUME_BRANDS = [
-    // Marcas comerciales populares
     "Tom Ford", "Dior", "Chanel", "Gucci", "Yves Saint Laurent", "Versace", "Hermès", 
     "Prada", "Dolce & Gabbana", "Givenchy", "Burberry", "Armani", "Hugo Boss", "Calvin Klein",
     "Lacoste", "Marc Jacobs", "Ralph Lauren", "Paco Rabanne", "Carolina Herrera", 
@@ -57,7 +56,7 @@ const Dashboard = ({ data }) => {
 
     const chartOptions = {
         responsive: true,
-        maintainAspectRatio: true, // Maintains a fixed aspect ratio
+        maintainAspectRatio: true,
         plugins: {
             legend: {
                 display: true,
@@ -82,24 +81,138 @@ const Dashboard = ({ data }) => {
     const latestVideo = videos[0];
 
     const chartRef = useRef(null);
+    // State declarations with proper initialization
+    const [rawApiResponse, setRawApiResponse] = useState(null);
+    const [perfumeAnalysis, setPerfumeAnalysis] = useState([]);
+    const [isLoadingPerfumes, setIsLoadingPerfumes] = useState(false);
+    const [perfumeError, setPerfumeError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [definition, setDefinition] = useState("");
-    const [summary, setSummary] = useState(""); // Estado del resumen
+    const [summary, setSummary] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [sortedVideos, setSortedVideos] = useState(videos);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
     const [showDefinitionFeedback, setShowDefinitionFeedback] = useState(false);
     const [showSummaryFeedback, setShowSummaryFeedback] = useState(false);
     const [historicalWordCount, setHistoricalWordCount] = useState([]);
-    const [queryInput, setQueryInput] = useState(""); // Estado para almacenar el texto ingresado por el usuario
-    const [queryResult, setQueryResult] = useState(""); // Estado para almacenar el resultado de la consulta
-    const [isQuerying, setIsQuerying] = useState(false); // Estado para manejar el estado de carga de la consulta
+    const [queryInput, setQueryInput] = useState("");
+    const [queryResult, setQueryResult] = useState("");
+    const [isQuerying, setIsQuerying] = useState(false);
     const [showQueryFeedback, setShowQueryFeedback] = useState(false);
 
+    // Add this debug effect at the top level of your component
+useEffect(() => {
+    console.log("Initial data:", {
+        hasData: !!data,
+        latestVideo: data?.latestVideo,
+        videoId: data?.latestVideo?.videoId
+    });
+}, [data]);
 
-    
-    
+const fetchPerfumeAnalysis = async () => {
+    if (!latestVideo?.videoId) {
+        console.warn("No videoId found in latestVideo");
+        setPerfumeError("No se encontró ID de video válido");
+        return;
+    }
 
+    setIsLoadingPerfumes(true);
+    setPerfumeError(null);
+
+    try {
+        const videoUrl = `https://www.youtube.com/watch?v=${latestVideo.videoId}`;
+        console.log("Fetching perfume analysis for:", videoUrl);
+
+        const response = await axios.post(
+            "http://127.0.0.1:8000/api/analyze-perfumes",
+            { video_url: videoUrl }
+        );
+
+        console.log("Raw API Response:", response.data);
+
+        // Handle string response with multiple levels of escaping
+        let parsedData;
+        try {
+            if (typeof response.data === 'string') {
+                // First, clean up escaped characters
+                let cleanData = response.data
+                    .replace(/\\n/g, '')
+                    .replace(/\\"/g, '"')
+                    .replace(/"{/g, '{')
+                    .replace(/}"/g, '}')
+                    .replace(/\\/g, '');
+
+                // Try to parse the cleaned data
+                parsedData = JSON.parse(cleanData);
+            } else {
+                parsedData = response.data;
+            }
+
+            // If analysis is a string, parse it again
+            if (typeof parsedData.analysis === 'string') {
+                parsedData.analysis = JSON.parse(parsedData.analysis);
+            }
+
+            console.log("Parsed data:", parsedData);
+
+            // Extract perfumes array
+            let perfumes = null;
+            if (parsedData?.analysis?.perfumes) {
+                if (typeof parsedData.analysis.perfumes === 'string') {
+                    perfumes = JSON.parse(parsedData.analysis.perfumes);
+                } else {
+                    perfumes = parsedData.analysis.perfumes;
+                }
+            } else if (parsedData?.perfumes) {
+                if (typeof parsedData.perfumes === 'string') {
+                    perfumes = JSON.parse(parsedData.perfumes);
+                } else {
+                    perfumes = parsedData.perfumes;
+                }
+            }
+
+            console.log("Extracted perfumes:", perfumes);
+
+            if (Array.isArray(perfumes) && perfumes.length > 0) {
+                setPerfumeAnalysis(perfumes);
+                setPerfumeError(null);
+            } else {
+                setPerfumeError("No se encontraron datos de perfumes válidos");
+                setPerfumeAnalysis([]);
+            }
+        } catch (parseError) {
+            console.error("Error parsing response:", parseError);
+            console.log("Failed data:", response.data);
+            setPerfumeError("Error al procesar los datos de perfumes");
+            setPerfumeAnalysis([]);
+        }
+    } catch (error) {
+        console.error("Error in perfume analysis:", error);
+        setPerfumeError(error.message || "Error al analizar perfumes");
+        setPerfumeAnalysis([]);
+    } finally {
+        setIsLoadingPerfumes(false);
+    }
+};
+
+// Add this debugging effect
+useEffect(() => {
+    console.log("PerfumeAnalysis state updated:", {
+        isLoading: isLoadingPerfumes,
+        error: perfumeError,
+        dataLength: perfumeAnalysis?.length,
+        firstPerfume: perfumeAnalysis?.[0]
+    });
+}, [perfumeAnalysis, isLoadingPerfumes, perfumeError]);
+// Update useEffect to handle the new data structure
+useEffect(() => {
+    if (latestVideo) {
+        console.log("Latest video available, fetching perfumes...");
+        fetchPerfumeAnalysis();
+    } else {
+        console.log("No latest video available yet");
+    }
+}, [latestVideo]);
 
     // Fetch historical word count
     useEffect(() => {
@@ -421,6 +534,9 @@ const Dashboard = ({ data }) => {
         };
     }
 }, [latestVideo, historicalWordCount]);
+
+
+
 
     return (
         <div style={{
@@ -932,41 +1048,174 @@ const Dashboard = ({ data }) => {
 
 </div>
 
-{/* Fourth Row: Detected Brands, Word Counts, and Graphs */}
+{/* Fourth Row: Análisis de Perfumes, Word Counts */}
 <div style={{ display: "flex", gap: "2rem" }}>
-    {/* Left Column: Detected Brands */}
+{/* Perfume Analysis Section */}
+<div style={{
+    flex: "1",
+    padding: "1.5rem",
+    borderRadius: "12px",
+    background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
+    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+}}>
     <div style={{
-        flex: "0.5",
-        padding: "1rem",
-        borderRadius: "8px",
-        background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "1.5rem",
     }}>
-        <h3>Marcas Detectadas</h3>
-        {latestVideo?.brands?.length > 0 ? (
-            <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-                <thead style={{ backgroundColor: "#e9e9e9" }}>
-                    <tr>
-                        <th style={{ padding: "0.5rem" }}>Marca</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {latestVideo.brands.map((brand, index) => (
-                        <tr key={index}>
-                            <td style={{ padding: "0.5rem" }}>{brand}</td>
+        <h3 style={{ margin: 0 }}>Análisis de Perfumes</h3>
+    </div>
+    
+    <div style={{
+        background: "white",
+        borderRadius: "8px",
+        padding: "1rem",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+    }}>
+        {isLoadingPerfumes && (
+            <div style={{ 
+                padding: "2rem",
+                textAlign: "center",
+                background: "#f8f9fa",
+                borderRadius: "6px"
+            }}>
+                <p style={{ 
+                    margin: 0,
+                    color: "#666",
+                    fontSize: "1.1rem"
+                }}>Analizando perfumes...</p>
+            </div>
+        )}
+        
+        {!isLoadingPerfumes && perfumeError && (
+            <div style={{ 
+                padding: "1rem",
+                color: "#dc3545",
+                background: "#fff5f5",
+                borderRadius: "6px",
+                border: "1px solid #ffebeb"
+            }}>
+                <p style={{ margin: 0 }}>{perfumeError}</p>
+            </div>
+        )}
+        
+        {!isLoadingPerfumes && !perfumeError && Array.isArray(perfumeAnalysis) && perfumeAnalysis.length > 0 && (
+            <div style={{ overflowX: "auto" }}>
+                <table style={{
+                    width: "100%",
+                    borderCollapse: "separate",
+                    borderSpacing: 0,
+                    marginTop: "0.5rem",
+                }}>
+                    <thead>
+                        <tr style={{ backgroundColor: "#f8f9fa" }}>
+                            <th style={{ 
+                                padding: "1rem",
+                                borderBottom: "2px solid #dee2e6",
+                                textAlign: "left",
+                                fontWeight: "600",
+                                color: "#495057"
+                            }}>Marca</th>
+                            <th style={{ 
+                                padding: "1rem",
+                                borderBottom: "2px solid #dee2e6",
+                                textAlign: "left",
+                                fontWeight: "600",
+                                color: "#495057"
+                            }}>Nombre</th>
+                            <th style={{ 
+                                padding: "1rem",
+                                borderBottom: "2px solid #dee2e6",
+                                textAlign: "left",
+                                fontWeight: "600",
+                                color: "#495057"
+                            }}>Descripción</th>
+                            <th style={{ 
+                                padding: "1rem",
+                                borderBottom: "2px solid #dee2e6",
+                                textAlign: "left",
+                                fontWeight: "600",
+                                color: "#495057"
+                            }}>Valoración</th>
+                            <th style={{ 
+                                padding: "1rem",
+                                borderBottom: "2px solid #dee2e6",
+                                textAlign: "left",
+                                fontWeight: "600",
+                                color: "#495057"
+                            }}>Razón de Valoración</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        ) : (
-            <p>No se detectaron marcas en este video.</p>
+                    </thead>
+                    <tbody>
+                        {perfumeAnalysis.map((perfume, index) => (
+                            <tr key={index} style={{
+                                backgroundColor: index % 2 === 0 ? "#fff" : "#f8f9fa",
+                                transition: "background-color 0.2s ease"
+                            }}>
+                                <td style={{ 
+                                    padding: "1rem",
+                                    borderBottom: "1px solid #dee2e6",
+                                    fontWeight: "500"
+                                }}>{perfume.marca}</td>
+                                <td style={{ 
+                                    padding: "1rem",
+                                    borderBottom: "1px solid #dee2e6"
+                                }}>{perfume.nombre}</td>
+                                <td style={{ 
+                                    padding: "1rem",
+                                    borderBottom: "1px solid #dee2e6"
+                                }}>{perfume.descripcion}</td>
+                                <td style={{
+                                    padding: "1rem",
+                                    borderBottom: "1px solid #dee2e6",
+                                    color: perfume.valoracion === "positiva" ? "#28a745" : "#dc3545",
+                                    fontWeight: "500"
+                                }}>{perfume.valoracion}</td>
+                                <td style={{ 
+                                    padding: "1rem",
+                                    borderBottom: "1px solid #dee2e6"
+                                }}>{perfume.razon_valoracion}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        )}
+        
+        {!isLoadingPerfumes && !perfumeError && (!Array.isArray(perfumeAnalysis) || perfumeAnalysis.length === 0) && (
+            <div style={{ 
+                padding: "2rem",
+                textAlign: "center",
+                background: "#f8f9fa",
+                borderRadius: "6px"
+            }}>
+                <p style={{
+                    margin: 0,
+                    color: "#666",
+                    fontSize: "1.1rem"
+                }}>No se encontraron datos de perfumes en la respuesta.</p>
+            </div>
         )}
     </div>
 
-    {/* Center Column: Word Counts */}
-    <div style={{ flex: "1", display: "flex", flexDirection: "row", gap: "1.5rem" }}>
+    <p style={{
+        marginTop: "1.5rem",
+        fontSize: "0.9rem",
+        color: "#666",
+        fontStyle: "italic",
+        textAlign: "center",
+        padding: "0 1rem"
+    }}>
+        Este análisis utiliza inteligencia artificial para extraer información sobre perfumes mencionados en el video.
+    </p>
+</div>
+
+    {/* Word Count Sections */}
+    <div style={{ flex: "1", display: "flex", gap: "1.5rem" }}>
         {/* Video Word Count */}
         <div style={{
+            flex: "1",
             padding: "1rem",
             borderRadius: "8px",
             background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
@@ -974,22 +1223,32 @@ const Dashboard = ({ data }) => {
         }}>
             <h3>Conteo de Palabras del Video</h3>
             {latestVideo?.wordcount ? (
-                <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-                    <thead style={{ backgroundColor: "#e9e9e9" }}>
-                        <tr>
-                            <th style={{ padding: "0.5rem" }}>Palabra</th>
-                            <th style={{ padding: "0.5rem" }}>Conteo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {latestVideo.wordcount.map(([word, count], index) => (
-                            <tr key={index}>
-                                <td style={{ padding: "0.5rem" }}>{word}</td>
-                                <td style={{ padding: "0.5rem" }}>{count}</td>
+                <div style={{ overflowX: "auto" }}>
+                    <table style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        backgroundColor: "white",
+                        borderRadius: "4px",
+                    }}>
+                        <thead>
+                            <tr style={{ backgroundColor: "#f4f4f4" }}>
+                                <th style={{ padding: "0.75rem", borderBottom: "2px solid #ddd" }}>Palabra</th>
+                                <th style={{ padding: "0.75rem", borderBottom: "2px solid #ddd" }}>Conteo</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {latestVideo.wordcount.map(([word, count], index) => (
+                                <tr key={index} style={{
+                                    borderBottom: "1px solid #eee",
+                                    backgroundColor: index % 2 === 0 ? "#fcfcfc" : "white"
+                                }}>
+                                    <td style={{ padding: "0.75rem" }}>{word}</td>
+                                    <td style={{ padding: "0.75rem" }}>{count}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             ) : (
                 <p>No hay datos de conteo disponibles.</p>
             )}
@@ -997,78 +1256,87 @@ const Dashboard = ({ data }) => {
 
         {/* Channel Word Count */}
         <div style={{
+            flex: "1",
             padding: "1rem",
             borderRadius: "8px",
             background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
         }}>
             <h3>Conteo Palabras Histórico del Canal</h3>
-            {historicalWordCount.length > 0 ? (
-                <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-                    <thead style={{ backgroundColor: "#e9e9e9" }}>
-                        <tr>
-                            <th style={{ padding: "0.5rem" }}>Palabra</th>
-                            <th style={{ padding: "0.5rem" }}>Conteo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {historicalWordCount.map((item, index) => (
-                            <tr key={index}>
-                                <td style={{ padding: "0.5rem" }}>{item.word}</td>
-                                <td style={{ padding: "0.5rem" }}>{item.count}</td>
+            {historicalWordCount?.length > 0 ? (
+                <div style={{ overflowX: "auto" }}>
+                    <table style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        backgroundColor: "white",
+                        borderRadius: "4px",
+                    }}>
+                        <thead>
+                            <tr style={{ backgroundColor: "#f4f4f4" }}>
+                                <th style={{ padding: "0.75rem", borderBottom: "2px solid #ddd" }}>Palabra</th>
+                                <th style={{ padding: "0.75rem", borderBottom: "2px solid #ddd" }}>Conteo</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {historicalWordCount.map((item, index) => (
+                                <tr key={index} style={{
+                                    borderBottom: "1px solid #eee",
+                                    backgroundColor: index % 2 === 0 ? "#fcfcfc" : "white"
+                                }}>
+                                    <td style={{ padding: "0.75rem" }}>{item.word}</td>
+                                    <td style={{ padding: "0.75rem" }}>{item.count}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             ) : (
                 <p>No hay datos históricos disponibles.</p>
             )}
         </div>
     </div>
+</div>
 
-    {/* Right Column: Graphs */}
-    <div style={{ flex: "2", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-        {/* Video Word Count Graph */}
-        {latestVideo?.wordcount && (
-            <div style={{
-                padding: "1rem",
-                borderRadius: "8px",
-                background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
-                boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-            }}>
-                <h3>Gráfico de Conteo de Palabras del Video</h3>
-                <div style={{ height: "300px", position: "relative" }}>
-                    <canvas id="wordcountChart" style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "block",
-                    }} />
-                </div>
-            </div>
-        )}
+{/* Fifth Row: Graphs */}
+<div style={{ display: "flex", gap: "2rem", marginTop: "2rem" }}>
+    {/* Video Word Count Graph */}
+    <div style={{
+        flex: "1",
+        padding: "1rem",
+        borderRadius: "8px",
+        background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+    }}>
+        <h3>Gráfico de Conteo de Palabras del Video</h3>
+        <div style={{ height: "300px", position: "relative" }}>
+            <canvas id="wordcountChart" style={{
+                width: "100%",
+                height: "100%",
+                display: "block",
+            }} />
+        </div>
+    </div>
 
-        {/* Channel Word Count Graph */}
-        {historicalWordCount?.length > 0 && (
-            <div style={{
-                padding: "1rem",
-                borderRadius: "8px",
-                background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
-                boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-            }}>
-                <h3>Gráfico de Conteo de Palabras del Canal</h3>
-                <div style={{ height: "300px", position: "relative" }}>
-                    <canvas id="channelWordcountChart" style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "block",
-                    }} />
-                </div>
-            </div>
-        )}
+    {/* Channel Word Count Graph */}
+    <div style={{
+        flex: "1",
+        padding: "1rem",
+        borderRadius: "8px",
+        background: "linear-gradient(to bottom, #f7f7f7, #d4d4d4)",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+    }}>
+        <h3>Gráfico de Conteo de Palabras del Canal</h3>
+        <div style={{ height: "300px", position: "relative" }}>
+            <canvas id="channelWordcountChart" style={{
+                width: "100%",
+                height: "100%",
+                display: "block",
+            }} />
+        </div>
     </div>
 </div>
-
 </div>
+
     );
 };
 
