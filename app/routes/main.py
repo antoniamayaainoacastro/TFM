@@ -15,6 +15,9 @@ from app.database.database_service import (
 )
 import logging
 import sys
+from app.utils.audio_processing import procesar_video  
+from app.utils.perfume_analysis import analyze_perfumes_from_transcription
+
 
 # Configurar logging
 logging.basicConfig(
@@ -192,3 +195,34 @@ async def query_llm(request: QueryRequest):
 
 # Incluir las rutas del search_llm
 router.include_router(search_router, prefix="")
+
+
+class PerfumeAnalysisRequest(BaseModel):
+    video_url: str
+
+@router.post("/api/analyze-perfumes")
+async def analyze_perfumes_endpoint(request: PerfumeAnalysisRequest):
+    """
+    Endpoint para analizar perfumes mencionados en un video
+    """
+    try:
+        # Procesar el video usando la función existente
+        video_data = procesar_video(request.video_url)
+        
+        if not video_data:
+            raise HTTPException(status_code=400, detail="No se pudo procesar el video")
+            
+        # Extraer el análisis de perfumes
+        perfume_analysis = video_data.get("perfume_analysis")
+        
+        if not perfume_analysis:
+            raise HTTPException(status_code=404, detail="No se encontró análisis de perfumes")
+            
+        return {
+            "success": True,
+            "analysis": perfume_analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en el endpoint de análisis de perfumes: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
