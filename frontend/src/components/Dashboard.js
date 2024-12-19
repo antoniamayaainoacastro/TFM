@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
+import ChannelComparison from './ChannelComparison';
 import axios from "axios";
 
 const PERFUME_BRANDS = [
@@ -1343,6 +1344,10 @@ useEffect(() => {
         </div>
     </div>
 </div>
+
+{/* Add the channel comparison section */}
+<ChannelComparison currentChannelData={data} />
+
 </div>
 
     );
