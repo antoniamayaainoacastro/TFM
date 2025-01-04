@@ -1,0 +1,184 @@
+/* Main container */
+.dashboard-container {
+    padding: 2rem;
+    background: linear-gradient(to bottom, #d9d9d9, #b5b5b5);
+    font-family: 'Roboto', sans-serif;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Base card styles - this is the key gradient that needs to be consistent */
+.card {
+    padding: 1rem;
+    border-radius: 8px;
+    background: linear-gradient(to bottom, #f7f7f7, #d4d4d4);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Flex layouts */
+.flex-row {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Column sizes - exactly as in original */
+.flex-0-4 { flex: 0.4; }
+.flex-0-5 { flex: 0.5; }
+.flex-1 { flex: 1; }
+.flex-1-2 { flex: 1.2; }
+
+/* Table styles - exact match to original */
+.data-table {
+    width: 100%;
+    text-align: left;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.data-table thead tr {
+    background-color: #e9e9e9;
+}
+
+.data-table th {
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.data-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.data-table a {
+    text-decoration: none;
+    color: #333;
+}
+
+/* Stats table - exact match */
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    border-radius: 8px;
+}
+
+.stats-table td {
+    padding: 0.8rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.stats-table td:first-child {
+    font-weight: 500;
+    color: #444;
+}
+
+.stats-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Button styles - exact match */
+.btn-primary {
+    padding: 0.5rem 1rem;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+/* Input styles - exact match */
+.input-primary {
+    width: 95%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Charts container - exact match */
+.chart-container {
+    height: 300px;
+    position: relative;
+    margin-top: 1rem;
+    background: white;
+    border-radius: 4px;
+    padding: 1rem;
+}
+
+/* Definition/results box - exact match */
+.results-box {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Typography */
+h2, h3, h4 {
+    margin: 0;
+    color: #333;
+}
+
+.text-note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #333;
+    font-style: italic;
+}
+
+/* Perfume analysis table - exact match */
+.perfume-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 8px;
+}
+
+.perfume-table th {
+    padding: 1rem;
+    border-bottom: 2px solid #dee2e6;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.perfume-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Loading and error states - exact match */
+.loading-state {
+    padding: 2rem;
+    text-align: center;
+    background: #f8f9fa;
+    border-radius: 6px;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.error-state {
+    padding: 1rem;
+    color: #dc3545;
+    background: #fff5f5;
+    border-radius: 6px;
+    border: 1px solid #ffebeb;
+}
+
+/* Video iframe container - exact match */
+.video-container {
+    width: 100%;
+    height: 315px;
+    margin-bottom: 1rem;
+}
