@@ -19,12 +19,12 @@ const Footer = () => {
             }}
         >
             <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <p style={{ margin: '0', fontSize: '1rem' }}>Antoni Amaya Obrador</p>
+                <p style={{ margin: '0', fontSize: '1rem' }}>Antoni Amaya Obrador y Ainoa Castro Braña</p>
                 <p style={{ margin: '0', fontSize: '0.9rem' }}>Todos los derechos reservados</p>
             </div>
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                 <button
-                    onClick={() => (window.location.href = 'mailto:influencermarketingyoutubetool@gmail.com')}
+                    onClick={() => (window.location.href = 'mailto:mioti2025@gmail.com')}
                     style={{
                         padding: '0.5rem 1rem',
                         backgroundColor: '#d3d3d3',
@@ -38,20 +38,7 @@ const Footer = () => {
                 >
                     Contacto
                 </button>
-                <button
-                    onClick={() => window.open('https://www.linkedin.com/in/antoniamaya/', '_blank')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        backgroundColor: '#d3d3d3',
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                    }}
-                >
-                    LinkedIn
-                </button>
+                
             </div>
             <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <p style={{ fontSize: '0.8rem', margin: '0', fontStyle: 'italic' }}>

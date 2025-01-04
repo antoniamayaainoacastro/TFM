@@ -30,7 +30,7 @@ const Header = () => {
             </h1>
             <div style={{ width: '100px' }}></div> {/* Espaciador izquierdo */}
             <button
-                onClick={() => (window.location.href = 'mailto:influencermarketingyoutubetool@gmail.com')}
+                onClick={() => (window.location.href = 'mailto:mioti2025@gmail.com')}
                 style={{
                     padding: '0.5rem 1rem',
                     backgroundColor: '#d3d3d3',
