@@ -3,8 +3,7 @@ import re
 import requests
 from dotenv import load_dotenv
 from app.utils.audio_processing import procesar_video
-from app.utils.wordcount_plot import generar_grafico_wordcount
-from app.database.database_service import insert_video_wordcount  
+
 from app.utils.sentiment_analysis import analyze_comments
 
 # Cargar variables de entorno
@@ -172,26 +171,7 @@ def fetch_channel_videos(channel_url):
 
             if processed_data:
                 latest_video["summary"] = processed_data.get("summary", "Resumen no disponible.")
-                latest_video["wordcount"] = processed_data.get("wordcount", [])
-                latest_video["total_palabras"] = processed_data.get("total_palabras", 0)
-
-                # Guardar wordcount en la base de datos
-                insert_video_wordcount(
-                    video_id=latest_video["videoId"],
-                    channel_id=channel_id,  # Agregar el channel_id aquí
-                    channel_name=channel_data["items"][0]["snippet"]["title"],
-                    video_title=latest_video["title"],
-                    wordcount=latest_video["wordcount"],
-                    total_palabras=latest_video["total_palabras"],
-                )
-
-                # Generar gráfico de barras para el wordcount
-                if latest_video["wordcount"]:
-                    grafico_path = generar_grafico_wordcount(
-                        latest_video["wordcount"], 
-                        output_path=f"static/wordcount_{latest_video['videoId']}.png"
-                    )
-                    latest_video["wordcount_chart"] = grafico_path  # Añadir la ruta del gráfico al video
+                
 
         return {
             "channel_title": channel_data["items"][0]["snippet"]["title"],

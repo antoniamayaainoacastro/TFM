@@ -1,23 +1,18 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Any
+from pydantic import BaseModel, Field 
+from typing import Any, Optional, List 
 from app.utils.youtube_api import fetch_channel_videos
-from app.utils.query_llm import (
-    generate_sql_from_question,
-    execute_sql_query,
-    sanitize_sql_query  
-)
 from app.utils.search_llm import router as search_router  
 from app.database.database_service import (
-    get_wordcount_summary,
-    get_historical_wordcount_by_channel,
     save_feedback
 )
 import logging
 import sys
 from app.utils.audio_processing import procesar_video  
+from app.utils.audio_processing import transcribir_audio_whisper
+from app.utils.audio_processing import download_audio_yt_dlp
 from app.utils.perfume_analysis import analyze_perfumes_from_transcription
-
+from app.utils.perfume_parameters import analyze_parameters_from_transcription
 
 # Configurar logging
 logging.basicConfig(
@@ -34,14 +29,6 @@ router = APIRouter()
 # Modelo Pydantic para validar la solicitud de análisis
 class AnalyzeRequest(BaseModel):
     url: str
-
-class WordcountData(BaseModel):
-    channel_name: str
-    video_title: str
-    video_id: str
-    wordcount: list
-
-
 
 
 class QueryRequest(BaseModel):
@@ -62,78 +49,19 @@ async def analyze_channel(request: AnalyzeRequest):
         if not channel_data:
             raise HTTPException(status_code=400, detail="No se pudieron obtener los datos del canal")
 
-        # Obtener histórico del canal específico
-        historical_wordcount = get_historical_wordcount_by_channel(channel_data["channel_title"])
-
-        # Generar ruta al gráfico si existe
-        chart_path = None
-        if "wordcount_chart" in channel_data:
-            chart_path = f"/static/{channel_data['wordcount_chart']}"
-
-        # Obtener el resumen general de palabras
-        general_summary = get_wordcount_summary()
 
         return {
             "channel_title": channel_data["channel_title"],
             "description": channel_data["description"],
             "videos": channel_data["videos"],
-            "wordcount_chart": chart_path,
-            "historical_wordcount": historical_wordcount,
-            "general_wordcount_summary": general_summary
+            
         }
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
-@router.post("/api/save-wordcount")
-async def save_wordcount(data: WordcountData):
-    """
-    Endpoint para guardar el conteo de palabras de un video.
-    """
-    try:
-        insert_wordcount(
-            channel_name=data.channel_name,
-            video_title=data.video_title,
-            video_id=data.video_id,
-            wordcount_list=data.wordcount
-        )
-        return {"message": "Datos de wordcount guardados exitosamente."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al guardar wordcount: {str(e)}")
 
-@router.get("/api/wordcount-summary")
-async def wordcount_summary():
-    """
-    Endpoint para obtener el resumen general de palabras.
-    """
-    try:
-        summary = get_wordcount_summary()
-        return {"wordcount_summary": summary}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al obtener el resumen de wordcount: {str(e)}"
-        )
-
-@router.get("/api/historical-wordcount/{channel_name}")
-async def historical_wordcount(channel_name: str):
-    """
-    Endpoint para obtener el histórico de palabras de un canal específico.
-    """
-    try:
-        print(f"Received channel_name: {channel_name}")  # Log del canal recibido
-        wordcount = get_historical_wordcount_by_channel(channel_name)
-        print(f"Wordcount fetched: {wordcount}")  # Log del resultado
-        return {"historical_wordcount": wordcount}
-    except Exception as e:
-        print(f"Error in API endpoint: {e}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al obtener el histórico del canal: {str(e)}"
-        )
-
-from pydantic import BaseModel
 from typing import Optional
 
 class FeedbackData(BaseModel):
@@ -164,34 +92,6 @@ async def save_user_feedback(feedback: FeedbackData):
 
 
 import traceback
-
-@router.post("/api/query")
-async def query_llm(request: QueryRequest):
-    try:
-        logger.info(f"Received question: {request.question}")
-
-        # Generar consulta SQL y prompt
-        sql_result = generate_sql_from_question(request.question)
-        logger.debug(f"Generated SQL result: {sql_result}")
-
-        # Sanear la consulta SQL
-        raw_query = sql_result.get("query")  # Extraer solo la consulta SQL
-        if not raw_query:
-            logger.error("No query found in sql_result")
-            raise ValueError("No SQL query generated.")
-
-        sanitized_query = sanitize_sql_query(raw_query)
-        logger.debug(f"Sanitized SQL query: {sanitized_query}")
-
-        # Ejecutar la consulta SQL saneada
-        results = execute_sql_query(sanitized_query)
-        logger.info(f"Final result from query execution: {results}")
-
-        return {"results": results}
-
-    except Exception as e:
-        logger.error(f"Error in query process: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 # Incluir las rutas del search_llm
 router.include_router(search_router, prefix="")
@@ -226,3 +126,84 @@ async def analyze_perfumes_endpoint(request: PerfumeAnalysisRequest):
     except Exception as e:
         logger.error(f"Error en el endpoint de análisis de perfumes: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+
+class PerfumeParameter(BaseModel):
+    perfume_name: Optional[str]
+    brand: Optional[str]
+    fragancia: Optional[int]  # Cambiado a int según los datos de ejemplo
+    duracion: Optional[int]
+    diseno: Optional[int]
+    calidad: Optional[int]
+    precio: Optional[int]
+
+
+class ParametersRequest(BaseModel):
+    video_url: Optional[str] = Field(default=None, description="URL del video a analizar")
+    transcription: Optional[str] = Field(default=None, description="Transcripción del video")
+
+
+class ParametersResponse(BaseModel):
+    success: bool
+    perfumes: List[PerfumeParameter]
+    message: Optional[str] = None
+
+@router.post("/api/parameters", response_model=ParametersResponse)
+async def parameters_endpoint(request: ParametersRequest):
+    """
+    Endpoint para analizar los parámetros de perfumes desde una URL.
+    """
+    try:
+        logger.info("Iniciando análisis de parámetros")
+
+        # Validar que se proporcione una URL válida
+        if not request.video_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Se requiere proporcionar una URL de video válida"
+            )
+
+        # Utilizar la función de análisis basada en la URL
+        logger.info(f"Analizando parámetros desde la URL del video: {request.video_url}")
+
+        # Llamada directa a la función analyze_parameters_from_transcription
+        transcription = procesar_video(request.video_url)["transcription"]
+
+        if not transcription:
+            raise HTTPException(
+                status_code=500,
+                detail="No se pudo obtener la transcripción del video"
+            )
+
+        # Analizar la transcripción para obtener parámetros
+        parameter_analysis = analyze_parameters_from_transcription(transcription)
+
+        # Validar y procesar el resultado
+        perfumes = parameter_analysis.get("perfumes", [])
+        if not isinstance(perfumes, list):
+            logger.error("El resultado del análisis no contiene una lista válida de perfumes")
+            raise HTTPException(
+                status_code=500,
+                detail="El análisis de parámetros no devolvió una lista válida"
+            )
+
+        # Retornar los parámetros analizados
+        return ParametersResponse(
+            success=True,
+            perfumes=perfumes,
+            message="Análisis de parámetros completado correctamente"
+        )
+
+    except HTTPException as http_ex:
+        logger.error(f"Error HTTP: {http_ex.detail}")
+        raise
+
+    except Exception as e:
+        logger.error(f"Error inesperado: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en el análisis de parámetros: {str(e)}"
+        )

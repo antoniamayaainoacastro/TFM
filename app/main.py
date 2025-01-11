@@ -17,12 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configurar directorio estático
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "../static")
-if not os.path.exists(STATIC_DIR):
-    print(f"Warning: Static directory '{STATIC_DIR}' does not exist.")
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 # Incluir solo el router principal
 app.include_router(router)

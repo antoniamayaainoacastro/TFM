@@ -7,8 +7,7 @@ import VideosSection from "./VideosSection";
 import StatsSection from "./StatsSection";
 import SummaryAndQueryBox from "./SummaryAndQueryBox";
 import PerfumeAnalysisSection from "./PerfumeAnalysisSection";
-import WordCountSection from "./WordCountSection";
-import GraphsSection from "./GraphsSection";
+import PerfumeParameters from "./PerfumeParameters";
 import ChannelComparison from "./ChannelComparison";
 
 const Dashboard = ({ data }) => {
@@ -43,14 +42,6 @@ const Dashboard = ({ data }) => {
     // 2. Extraemos la info básica del canal y sus videos
     const { channel_title, description, videos = [] } = data;
     const [latestVideo, setLatestVideo] = useState(null);
-    // Aquí guardaremos el conteo histórico de palabras que obtendremos vía API
-    const [historicalWordCount, setHistoricalWordCount] = useState([]);
-
-    // 3. Al montar el componente (o cuando cambie `channel_title`), 
-    //    podemos obtener el "último video" con la transcripción y wordcount (si no lo tuviéramos ya).
-    //    Pero si tu backend ya te provee 'videos[0]' con todo, 
-    //    puedes simplemente usar `videos[0]` y omitir esta llamada.
-    //    Aun así, muestro el ejemplo de una posible llamada.
 
     useEffect(() => {
         // Si tu backend ya te pasa un "videos[0]" con wordcount, 
@@ -73,22 +64,7 @@ const Dashboard = ({ data }) => {
         */
     }, [videos]);
 
-    // 4. Obtener el conteo histórico de palabras del canal (si no lo tuviéramos ya)
-    useEffect(() => {
-        if (!channel_title) return;  // Evitar llamada si no tenemos el nombre del canal
-
-        const fetchHistoricalWordCount = async () => {
-            try {
-                const resp = await axios.get(
-                    `http://127.0.0.1:8000/api/historical-wordcount/${channel_title}`
-                );
-                setHistoricalWordCount(resp.data.historical_wordcount || []);
-            } catch (error) {
-                console.error("Error fetching historical word count:", error);
-            }
-        };
-        fetchHistoricalWordCount();
-    }, [channel_title]);
+   
 
     return (
         <div style={{
@@ -118,25 +94,14 @@ const Dashboard = ({ data }) => {
                 <SummaryAndQueryBox latestVideo={latestVideo} />
             </div>
 
-            {/* Cuarta fila: análisis perfumes + conteo palabras */}
+            {/* Cuarta fila: análisis perfumes + parameters */}
             <div style={{ display: "flex", gap: "2rem" }}>
-                <PerfumeAnalysisSection latestVideo={latestVideo} />
-                {/* WordCountSection necesita 'latestVideo' y 'channelTitle' 
-                    para mostrar tablas, pero ahora recibirá 'historicalWordCount' directamente */}
-                <WordCountSection
-                    latestVideo={latestVideo}
-                    historicalWordCount={historicalWordCount}
-                />
-            </div>
+    <PerfumeAnalysisSection latestVideo={latestVideo} />
+    <PerfumeParameters latestVideo={latestVideo} />
 
-            {/* Quinta fila: gráficos */}
-            <div style={{ display: "flex", gap: "2rem", marginTop: "2rem" }}>
-                {/* GraphsSection recibe la misma data (latestVideo y historicalWordCount) */}
-                <GraphsSection
-                    latestVideo={latestVideo}
-                    historicalWordCount={historicalWordCount}
-                />
-            </div>
+</div>
+
+
 
             {/* Comparación de canales */}
             <ChannelComparison currentChannelData={data} />

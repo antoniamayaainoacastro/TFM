@@ -73,6 +73,10 @@ def get_db_connection():
     try:
         conn = psycopg2.connect(**DATABASE_CONFIG, cursor_factory=RealDictCursor)
         return conn
+    
     except Exception as e:
         print(f"Error al conectar con la base de datos: {e}")
         raise
+
+
+
