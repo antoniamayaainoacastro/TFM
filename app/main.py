@@ -16,6 +16,7 @@ app.add_middleware(
         "http://localhost:3000",
         "https://frontend-service-320582554125.europe-southwest1.run.app",
         "http://frontend-service-320582554125.europe-southwest1.run.app",
+        "https://perfumeanalytics.com"
 
     ],
     allow_credentials=True,
