@@ -12,7 +12,16 @@ const Form = ({ setDashboardData }) => {
         setError(null);
 
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/analyze', { url });
+            const response = await axios.post(
+                'https://backend-service-320582554125.europe-southwest1.run.app/api/analyze', 
+                { url },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    withCredentials: false
+                }
+            );
             setDashboardData(response.data);
         } catch (err) {
             console.error('Error while analyzing URL:', err);

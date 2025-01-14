@@ -29,7 +29,7 @@ const SummaryAndQueryBox = ({ latestVideo }) => {
         }
     
         try {
-            await axios.post("http://127.0.0.1:8000/api/feedback", {
+            await axios.post("https://backend-service-320582554125.europe-southwest1.run.app/api/feedback", {
                 type: "summary",
                 result,
                 content: summary,
@@ -53,7 +53,7 @@ const SummaryAndQueryBox = ({ latestVideo }) => {
         setQueryResult("Procesando la consulta, por favor espera...");
 
         try {
-            const response = await axios.post("http://localhost:8000/api/query", {
+            const response = await axios.post("https://backend-service-320582554125.europe-southwest1.run.app/api/query", {
                 question: queryInput,
             });
 
@@ -87,7 +87,7 @@ const SummaryAndQueryBox = ({ latestVideo }) => {
         console.log("Enviando feedback:", feedbackData);
 
         try {
-            await axios.post("http://127.0.0.1:8000/api/feedback", feedbackData);
+            await axios.post("https://backend-service-320582554125.europe-southwest1.run.app/api/feedback", feedbackData);
             setShowQueryFeedback(true);
             setTimeout(() => setShowQueryFeedback(false), 3000);
         } catch (error) {

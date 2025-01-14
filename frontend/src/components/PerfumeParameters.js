@@ -47,7 +47,7 @@ const PerfumeParameters = ({ latestVideo, isLoading: parentIsLoading, error: par
             setError(null);
 
             try {
-                const response = await fetch("http://localhost:8000/api/parameters", {
+                const response = await fetch("https://backend-service-320582554125.europe-southwest1.run.app/api/parameters", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

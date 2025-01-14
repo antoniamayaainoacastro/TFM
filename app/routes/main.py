@@ -2,17 +2,26 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field 
 from typing import Any, Optional, List 
 from app.utils.youtube_api import fetch_channel_videos
-from app.utils.search_llm import router as search_router  
 from app.database.database_service import (
     save_feedback
 )
 import logging
 import sys
+from openai import OpenAI  # Añadir esta línea
+import os  # Añadir esta línea
+from dotenv import load_dotenv  # Añadir esta línea
 from app.utils.audio_processing import procesar_video  
 from app.utils.audio_processing import transcribir_audio_whisper
 from app.utils.audio_processing import download_audio_yt_dlp
 from app.utils.perfume_analysis import analyze_perfumes_from_transcription
 from app.utils.perfume_parameters import analyze_parameters_from_transcription
+from app.utils.search_llm import truncate_at_last_period 
+
+# Cargar variables de entorno
+load_dotenv()
+
+# Inicializar el cliente OpenAI
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Configurar logging
 logging.basicConfig(
@@ -93,9 +102,6 @@ async def save_user_feedback(feedback: FeedbackData):
 
 import traceback
 
-# Incluir las rutas del search_llm
-router.include_router(search_router, prefix="")
-
 
 class PerfumeAnalysisRequest(BaseModel):
     video_url: str
@@ -129,7 +135,8 @@ async def analyze_perfumes_endpoint(request: PerfumeAnalysisRequest):
 
 
 
-
+class SearchRequest(BaseModel):
+    term: str
 
 class PerfumeParameter(BaseModel):
     perfume_name: Optional[str]
@@ -206,4 +213,149 @@ async def parameters_endpoint(request: ParametersRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error en el análisis de parámetros: {str(e)}"
+        )
+
+@router.post("/api/define")
+async def search_definition(request: SearchRequest):
+    try:
+        logger.info(f"Recibida solicitud de definición para: {request.term}")
+        
+        messages = [
+            {"role": "system", "content": "Eres un experto en perfumería que proporciona definiciones precisas y profesionales."},
+            {"role": "user", "content": f"Define {request.term} de forma breve y profesional en español."}
+        ]
+        
+        logger.info("Generando definición con OpenAI...")
+        try:
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                max_tokens=200,
+                temperature=0.7,
+                top_p=0.9
+            )
+            definition = response.choices[0].message.content
+            logger.info(f"Respuesta completa: {definition}")
+        except Exception as e:
+            logger.error(f"Error en la generación con OpenAI: {str(e)}")
+            raise
+        
+        # Now truncate_at_last_period is available
+        definition = truncate_at_last_period(definition)
+        logger.info(f"Definición final extraída y truncada: {definition}")
+        
+        if len(definition) < 10:
+            logger.warning("La definición generada es demasiado corta")
+            raise ValueError("La definición generada es demasiado corta")
+            
+        return {
+            "definition": definition,
+            "prompt_system": messages[0]["content"],
+            "prompt_user": messages[1]["content"]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en el proceso de definición: {str(e)}")
+        logger.error("Detalles del error:", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error interno: {str(e)}"
+        )
+
+from fastapi import APIRouter, HTTPException
+from youtube_transcript_api import YouTubeTranscriptApi
+import logging
+
+# Configurar logging
+logger = logging.getLogger(__name__)
+
+class QuestionRequest(BaseModel):
+    video_url: str
+    question: str
+
+@router.post("/api/ask_question")
+async def ask_question(request: QuestionRequest):
+    """
+    Endpoint para realizar preguntas basadas en la transcripción de un video.
+    """
+    logger.info(f"Endpoint ask_question llamado con URL: {request.video_url} y pregunta: {request.question}")
+    
+    try:
+        # 1. Extraer video ID
+        try:
+            video_id = request.video_url.split("watch?v=")[-1]
+            if not video_id:
+                raise ValueError("URL de video inválida")
+            logger.info(f"Video ID extraído: {video_id}")
+        except Exception as e:
+            logger.error(f"Error al procesar la URL del video: {str(e)}")
+            raise HTTPException(status_code=400, detail="URL de video inválida")
+
+        # 2. Obtener transcripción
+        try:
+            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['es'])
+            transcription = " ".join([item['text'] for item in transcript])
+            
+            if not transcription.strip():
+                logger.warning("La transcripción está vacía")
+                raise ValueError("La transcripción está vacía")
+                
+            logger.info("Transcripción obtenida exitosamente")
+        except Exception as e:
+            logger.error(f"Error al obtener la transcripción: {str(e)}")
+            raise HTTPException(
+                status_code=500, 
+                detail="Error al obtener la transcripción. Verifica que el video exista y tenga subtítulos en español."
+            )
+
+        # 3. Preparar mensajes para OpenAI
+        messages = [
+            {
+                "role": "system", 
+                "content": "Eres un experto en análisis de videos que responde preguntas basadas en la transcripción."
+            },
+            {
+                "role": "user", 
+                "content": f"Transcripción: {transcription}\nPregunta: {request.question}"
+            }
+        ]
+        
+        # 4. Generar respuesta usando OpenAI
+        logger.info("Generando respuesta con OpenAI...")
+        try:
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                max_tokens=300,
+                temperature=0.7,
+                top_p=0.9
+            )
+            answer = response.choices[0].message.content.strip()
+            logger.info("Respuesta generada exitosamente")
+        except Exception as e:
+            logger.error(f"Error en la generación con OpenAI: {str(e)}")
+            raise
+
+        # 5. Verificar calidad de la respuesta
+        if len(answer) < 10:
+            logger.warning("La respuesta generada es demasiado corta")
+            raise ValueError("La respuesta generada es demasiado corta")
+
+        return {
+            "success": True,
+            "video_id": video_id,
+            "question": request.question,
+            "answer": answer,
+            "prompt_system": messages[0]["content"],
+            "prompt_user": messages[1]["content"]
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error en el proceso de pregunta: {str(e)}")
+        logger.error("Detalles del error:", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno: {str(e)}"
         )

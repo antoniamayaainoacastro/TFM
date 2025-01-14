@@ -9,9 +9,10 @@ import SummaryAndQueryBox from "./SummaryAndQueryBox";
 import PerfumeAnalysisSection from "./PerfumeAnalysisSection";
 import PerfumeParameters from "./PerfumeParameters";
 import ChannelComparison from "./ChannelComparison";
+import VideoQA from "./VideoQA"; // Importamos el componente VideoQA
 
 const Dashboard = ({ data }) => {
-    // 1. Si no hay data inicial, mostramos el mensaje de "No hay datos..."
+    // Mostrar mensaje si no hay datos
     if (!data) {
         return (
             <div
@@ -39,32 +40,15 @@ const Dashboard = ({ data }) => {
         );
     }
 
-    // 2. Extraemos la info básica del canal y sus videos
+    // Extraer información del canal y videos
     const { channel_title, description, videos = [] } = data;
     const [latestVideo, setLatestVideo] = useState(null);
 
     useEffect(() => {
-        // Si tu backend ya te pasa un "videos[0]" con wordcount, 
-        // basta con hacer:
         if (videos.length > 0) {
             setLatestVideo(videos[0]);
         }
-        // o, si necesitas hacer un fetch a /api/last-video, 
-        // descomenta este ejemplo y ajusta la ruta:
-        /*
-        const fetchLastVideo = async () => {
-            try {
-                const resp = await axios.get("http://127.0.0.1:8000/api/last-video");
-                setLatestVideo(resp.data);
-            } catch (error) {
-                console.error("Error fetching last video:", error);
-            }
-        };
-        fetchLastVideo();
-        */
     }, [videos]);
-
-   
 
     return (
         <div style={{
@@ -72,7 +56,7 @@ const Dashboard = ({ data }) => {
             background: "linear-gradient(to bottom, #d9d9d9, #b5b5b5)",
             fontFamily: "Roboto, sans-serif",
             minHeight: "100vh",
-            margin: '0',
+            margin: "0",
         }}>
             {/* Primera fila: info canal + buscador de términos */}
             <div style={{ display: "flex", gap: "2rem", marginBottom: "2rem" }}>
@@ -83,25 +67,26 @@ const Dashboard = ({ data }) => {
                 <TermsSearch />
             </div>
 
-            {/* Segunda fila: últimos videos + stats */}
+            {/* Segunda fila: últimos videos + estadísticas */}
             <div style={{ display: "flex", gap: "2rem", marginBottom: "2rem" }}>
                 <VideosSection videos={videos} latestVideo={latestVideo} />
                 <StatsSection videos={videos} />
             </div>
 
-            {/* Tercera fila: resumen y query */}
+            {/* Tercera fila: resumen y consulta */}
             <div style={{ display: "flex", gap: "2rem", marginBottom: "2rem" }}>
                 <SummaryAndQueryBox latestVideo={latestVideo} />
             </div>
 
-            {/* Cuarta fila: análisis perfumes + parameters */}
-            <div style={{ display: "flex", gap: "2rem" }}>
-    <PerfumeAnalysisSection latestVideo={latestVideo} />
-    <PerfumeParameters latestVideo={latestVideo} />
-
-</div>
-
-
+            {/* Cuarta fila: análisis perfumes + parámetros + preguntas */}
+            <div style={{ display: "flex", gap: "2rem", flexDirection: "column" }}>
+                <div style={{ display: "flex", gap: "2rem" }}>
+                    <PerfumeAnalysisSection latestVideo={latestVideo} />
+                    <PerfumeParameters latestVideo={latestVideo} />
+                </div>
+                {/* Añadir el componente VideoQA */}
+                <VideoQA latestVideo={latestVideo} />
+            </div>
 
             {/* Comparación de canales */}
             <ChannelComparison currentChannelData={data} />
