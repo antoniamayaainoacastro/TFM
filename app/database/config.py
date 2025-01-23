@@ -1,14 +1,18 @@
-# app/database/config.py
-DATABASE_CONFIG = {
-    "dbname": "youtube_analysis",
-    "user": "toniamayaobrador",
-    "password": "Amaya992",
-    "host": "localhost",
-    "port": 5432
-}
-
-import psycopg2
+import os
+from dotenv import load_dotenv
 from datetime import datetime
+import psycopg2
+
+# Cargar las variables de entorno desde el archivo .env
+load_dotenv()
+
+DATABASE_CONFIG = {
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": int(os.getenv("DB_PORT"))
+}
 
 def get_connection():
     """

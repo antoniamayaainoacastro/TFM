@@ -61,7 +61,7 @@ const ChannelComparison = ({ currentChannelData }) => {
     debugLog('Fetching comparison data for URL', comparisonUrl);
 
     try {
-      const response = await fetch('https://backend-service-320582554125.europe-southwest1.run.app/api/analyze', {
+      const response = await fetch('https://backend-service-320582554125.europe-west4.run.app/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ const ChannelComparison = ({ currentChannelData }) => {
 
   const fetchPerfumeAnalysisForVideo = async (videoId) => {
     try {
-      const response = await fetch("https://backend-service-320582554125.europe-southwest1.run.app/api/analyze-perfumes", {
+      const response = await fetch("https://backend-service-320582554125.europe-west4.run.app/api/analyze-perfumes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

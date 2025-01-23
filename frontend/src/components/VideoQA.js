@@ -31,7 +31,7 @@ const VideoQA = ({ latestVideo }) => {
             });
 
             const response = await axios.post(
-                "https://backend-service-320582554125.europe-southwest1.run.app/api/ask_question", 
+                "https://backend-service-320582554125.europe-west4.run.app/api/ask_question", 
                 {
                     video_url: videoUrl,
                     question: question.trim()

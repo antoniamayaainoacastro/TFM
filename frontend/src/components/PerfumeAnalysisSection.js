@@ -22,7 +22,7 @@ const PerfumeAnalysisSection = ({ latestVideo }) => {
                 console.log("Fetching perfume analysis for:", videoUrl);
         
                 const response = await axios.post(
-                    "https://backend-service-320582554125.europe-southwest1.run.app/api/analyze-perfumes",
+                    "https://backend-service-320582554125.europe-west4.run.app/api/analyze-perfumes",
                     { video_url: videoUrl }
                 );
         

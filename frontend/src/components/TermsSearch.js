@@ -20,7 +20,7 @@ const TermsSearch = () => {
         );
 
         try {
-            const response = await axios.post("https://backend-service-320582554125.europe-southwest1.run.app/api/define", {
+            const response = await axios.post("https://backend-service-320582554125.europe-west4.run.app/api/define", {
                 term: searchTerm
             });
             setDefinition(response.data.definition || "No se encontró una definición.");
@@ -38,7 +38,7 @@ const TermsSearch = () => {
             return;
         }
         try {
-            await axios.post("https://backend-service-320582554125.europe-southwest1.run.app/api/feedback", {
+            await axios.post("https://backend-service-320582554125.europe-west4.run.app/api/feedback", {
                 type: "definition",
                 result,            // true o false
                 content: definition,

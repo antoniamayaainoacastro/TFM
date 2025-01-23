@@ -13,7 +13,7 @@ const Form = ({ setDashboardData }) => {
 
         try {
             const response = await axios.post(
-                'https://backend-service-320582554125.europe-southwest1.run.app/api/analyze', 
+                'https://backend-service-320582554125.europe-west4.run.app/api/analyze', 
                 { url },
                 {
                     headers: {
